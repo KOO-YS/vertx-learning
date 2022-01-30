@@ -3,6 +3,9 @@ package com.yaans.vertx_learning;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 
+/**
+ * https://vertx.io/get-started/
+ */
 public class MainVerticle extends AbstractVerticle {
 
   @Override
