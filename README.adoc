@@ -20,7 +20,6 @@ To run your application:
 ```
 ./mvnw clean compile exec:java
 ```
-<br>
 
 == Reference
 * https://how-to.vertx.io/graal-native-image-howto/
@@ -33,4 +32,40 @@ To run your application:
 * https://groups.google.com/forum/?fromgroups#!forum/vertx[Vert.x User Group]
 * https://gitter.im/eclipse-vertx/vertx-users[Vert.x Gitter]
 
+== fail log
 
+## in branch `build-01`
+- 샘플 http에 빌드 후 native-image 실행
+[source]
+----
+mvn package
+----
+
+[source]
+----
+$GRAALVM_HOME/bin/native-image \
+ --verbose \
+ --no-server \
+ -Dio.netty.noUnsafe=true  \
+ -H:+ReportUnsupportedElementsAtRuntime \
+ -Dfile.encoding=UTF-8 \
+ -jar ./target/vertx-learning-1.0.0-SNAPSHOT.jar
+----
+
+#### error log
+[source]
+----
+Error: No main manifest attribute, in /Users/이/Documents/test/vertx-learning/target/vertx-learning-1.0.0-SNAPSHOT.jar
+com.oracle.svm.driver.NativeImage$NativeImageError: No main manifest attribute, in /Users/이름/Documents/test/vertx-learning/target/vertx-learning-1.0.0-SNAPSHOT.jar
+	at com.oracle.svm.driver.NativeImage.showError(NativeImage.java:1754)
+	at com.oracle.svm.driver.NativeImage.handleMainClassAttribute(NativeImage.java:955)
+	at com.oracle.svm.driver.NativeImage.processJarManifestMainAttributes(NativeImage.java:945)
+	at com.oracle.svm.driver.DefaultOptionHandler.handleJarFileArg(DefaultOptionHandler.java:550)
+	at com.oracle.svm.driver.DefaultOptionHandler.consume(DefaultOptionHandler.java:164)
+	at com.oracle.svm.driver.NativeImage$NativeImageArgsProcessor.apply(NativeImage.java:1547)
+	at com.oracle.svm.driver.NativeImage.processNativeImageArgs(NativeImage.java:1802)
+	at com.oracle.svm.driver.NativeImage.completeImageBuild(NativeImage.java:989)
+	at com.oracle.svm.driver.NativeImage.build(NativeImage.java:1464)
+	at com.oracle.svm.driver.NativeImage.performBuild(NativeImage.java:1434)
+	at com.oracle.svm.driver.NativeImage.main(NativeImage.java:1421)
+----
