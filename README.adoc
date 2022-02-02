@@ -34,7 +34,7 @@ To run your application:
 
 == fail log
 
-## in branch `build-01`
+== in branch `build-01`
 - 샘플 http에 빌드 후 native-image 실행
 [source]
 ----
@@ -55,7 +55,7 @@ $GRAALVM_HOME/bin/native-image \
 #### error log
 [source]
 ----
-Error: No main manifest attribute, in /Users/이/Documents/test/vertx-learning/target/vertx-learning-1.0.0-SNAPSHOT.jar
+Error: No main manifest attribute, in /Users/이름/Documents/test/vertx-learning/target/vertx-learning-1.0.0-SNAPSHOT.jar
 com.oracle.svm.driver.NativeImage$NativeImageError: No main manifest attribute, in /Users/이름/Documents/test/vertx-learning/target/vertx-learning-1.0.0-SNAPSHOT.jar
 	at com.oracle.svm.driver.NativeImage.showError(NativeImage.java:1754)
 	at com.oracle.svm.driver.NativeImage.handleMainClassAttribute(NativeImage.java:955)
@@ -66,6 +66,132 @@ com.oracle.svm.driver.NativeImage$NativeImageError: No main manifest attribute, 
 	at com.oracle.svm.driver.NativeImage.processNativeImageArgs(NativeImage.java:1802)
 	at com.oracle.svm.driver.NativeImage.completeImageBuild(NativeImage.java:989)
 	at com.oracle.svm.driver.NativeImage.build(NativeImage.java:1464)
+	at com.oracle.svm.driver.NativeImage.performBuild(NativeImage.java:1434)
+	at com.oracle.svm.driver.NativeImage.main(NativeImage.java:1421)
+----
+
+
+
+== in branch `build-02`
+`build-01` 로부터 원인 파악
+----
+No main manifest attribute
+----
+-> jar 파일에서 처음에 호출할 Main Class를 찾지 못할 때 뜨는 에러라고 한다.
+** Main Class를 추가해보자 **
+
+---
+- MainVerticle에 main 함수 추가 후 `build-01` 빌드 유지
+[source]
+----
+mvn package
+----
+
+[source]
+----
+$GRAALVM_HOME/bin/native-image \
+ --verbose \
+ --no-server \
+ -Dio.netty.noUnsafe=true  \
+ -H:+ReportUnsupportedElementsAtRuntime \
+ -Dfile.encoding=UTF-8 \
+ -jar ./target/vertx-learning-1.0.0-SNAPSHOT-fat.jar
+----
+
+
+#### error log
+[source]
+----
+[vertx-learning-1.0.0-SNAPSHOT-fat:2439]    classlist:   3,611.12 ms,  0.96 GB
+[vertx-learning-1.0.0-SNAPSHOT-fat:2439]        (cap):   8,908.32 ms,  0.94 GB
+[vertx-learning-1.0.0-SNAPSHOT-fat:2439]        setup:  13,492.66 ms,  0.94 GB
+Feb 02, 2022 11:30:59 PM io.netty.resolver.dns.DnsServerAddressStreamProviders <clinit>
+WARNING: Can not find io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider in the classpath, fallback to system defaults. This may result in incorrect DNS resolutions on MacOS.
+[vertx-learning-1.0.0-SNAPSHOT-fat:2439]     analysis:  29,732.10 ms,  1.95 GB
+Fatal error:com.oracle.graal.pointsto.util.AnalysisError$ParsingError: Error encountered while parsing io.vertx.core.json.jackson.JacksonFactory.<clinit>()
+Parsing context: <no parsing context available>
+
+	at com.oracle.graal.pointsto.util.AnalysisError.parsingError(AnalysisError.java:133)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlow.createTypeFlow(MethodTypeFlow.java:311)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlow.ensureTypeFlowCreated(MethodTypeFlow.java:282)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlow.addContext(MethodTypeFlow.java:103)
+	at com.oracle.graal.pointsto.PointsToAnalysis$1.run(PointsToAnalysis.java:463)
+	at com.oracle.graal.pointsto.util.CompletionExecutor.executeCommand(CompletionExecutor.java:188)
+	at com.oracle.graal.pointsto.util.CompletionExecutor.lambda$executeService$0(CompletionExecutor.java:172)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1426)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:290)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1020)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1656)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1594)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:183)
+Caused by: com.oracle.graal.pointsto.util.AnalysisError: parsing had failed in another thread
+	at com.oracle.graal.pointsto.util.AnalysisError.shouldNotReachHere(AnalysisError.java:153)
+	at com.oracle.graal.pointsto.meta.AnalysisMethod.ensureGraphParsed(AnalysisMethod.java:656)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlowBuilder.parse(MethodTypeFlowBuilder.java:163)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlowBuilder.apply(MethodTypeFlowBuilder.java:321)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlow.createTypeFlow(MethodTypeFlow.java:293)
+	... 11 more
+Caused by: org.graalvm.compiler.java.BytecodeParser$BytecodeParserError: com.oracle.graal.pointsto.constraints.UnresolvedElementException: Discovered unresolved method during parsing: io.vertx.core.json.jackson.DatabindCodec.<init>(). To diagnose the issue you can use the --allow-incomplete-classpath option. The missing method is then reported at run time when it is accessed the first time.
+	at parsing io.vertx.core.json.jackson.JacksonFactory.<clinit>(JacksonFactory.java:28)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.throwParserError(BytecodeParser.java:2624)
+	at com.oracle.svm.hosted.phases.SharedGraphBuilderPhase$SharedBytecodeParser.throwParserError(SharedGraphBuilderPhase.java:107)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.iterateBytecodesForBlock(BytecodeParser.java:3485)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.handleBytecodeBlock(BytecodeParser.java:3437)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.processBlock(BytecodeParser.java:3282)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.build(BytecodeParser.java:1145)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.buildRootMethod(BytecodeParser.java:1030)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.GraphBuilderPhase$Instance.run(GraphBuilderPhase.java:84)
+	at com.oracle.svm.hosted.phases.SharedGraphBuilderPhase.run(SharedGraphBuilderPhase.java:81)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.Phase.run(Phase.java:49)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.BasePhase.apply(BasePhase.java:212)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.Phase.apply(Phase.java:42)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.Phase.apply(Phase.java:38)
+	at com.oracle.graal.pointsto.flow.AnalysisParsedGraph.parseBytecode(AnalysisParsedGraph.java:132)
+	at com.oracle.graal.pointsto.meta.AnalysisMethod.ensureGraphParsed(AnalysisMethod.java:621)
+	at com.oracle.svm.hosted.fieldfolding.StaticFinalFieldFoldingNodePlugin.handleLoadStaticField(StaticFinalFieldFoldingFeature.java:349)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.genGetStatic(BytecodeParser.java:4944)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.genGetStatic(BytecodeParser.java:4911)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.processBytecode(BytecodeParser.java:5413)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.iterateBytecodesForBlock(BytecodeParser.java:3477)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.handleBytecodeBlock(BytecodeParser.java:3437)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.processBlock(BytecodeParser.java:3282)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.build(BytecodeParser.java:1145)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.buildRootMethod(BytecodeParser.java:1030)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.GraphBuilderPhase$Instance.run(GraphBuilderPhase.java:84)
+	at com.oracle.svm.hosted.phases.SharedGraphBuilderPhase.run(SharedGraphBuilderPhase.java:81)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.Phase.run(Phase.java:49)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.BasePhase.apply(BasePhase.java:212)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.Phase.apply(Phase.java:42)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.phases.Phase.apply(Phase.java:38)
+	at com.oracle.graal.pointsto.flow.AnalysisParsedGraph.parseBytecode(AnalysisParsedGraph.java:132)
+	at com.oracle.graal.pointsto.meta.AnalysisMethod.ensureGraphParsed(AnalysisMethod.java:621)
+	at com.oracle.graal.pointsto.phases.InlineBeforeAnalysisGraphDecoder.lookupEncodedGraph(InlineBeforeAnalysis.java:182)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.replacements.PEGraphDecoder.doInline(PEGraphDecoder.java:1120)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.replacements.PEGraphDecoder.tryInline(PEGraphDecoder.java:1103)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.replacements.PEGraphDecoder.trySimplifyInvoke(PEGraphDecoder.java:961)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.replacements.PEGraphDecoder.handleInvoke(PEGraphDecoder.java:915)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.nodes.GraphDecoder.processNextNode(GraphDecoder.java:791)
+	at com.oracle.graal.pointsto.phases.InlineBeforeAnalysisGraphDecoder.processNextNode(InlineBeforeAnalysis.java:242)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.nodes.GraphDecoder.decode(GraphDecoder.java:532)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.replacements.PEGraphDecoder.decode(PEGraphDecoder.java:787)
+	at com.oracle.graal.pointsto.phases.InlineBeforeAnalysis.decodeGraph(InlineBeforeAnalysis.java:99)
+	at com.oracle.graal.pointsto.flow.MethodTypeFlowBuilder.parse(MethodTypeFlowBuilder.java:171)
+	... 13 more
+Caused by: com.oracle.graal.pointsto.constraints.UnresolvedElementException: Discovered unresolved method during parsing: io.vertx.core.json.jackson.DatabindCodec.<init>(). To diagnose the issue you can use the --allow-incomplete-classpath option. The missing method is then reported at run time when it is accessed the first time.
+	at com.oracle.svm.hosted.phases.SharedGraphBuilderPhase$SharedBytecodeParser.reportUnresolvedElement(SharedGraphBuilderPhase.java:307)
+	at com.oracle.svm.hosted.phases.SharedGraphBuilderPhase$SharedBytecodeParser.handleUnresolvedMethod(SharedGraphBuilderPhase.java:298)
+	at com.oracle.svm.hosted.phases.SharedGraphBuilderPhase$SharedBytecodeParser.handleUnresolvedInvoke(SharedGraphBuilderPhase.java:252)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.genInvokeSpecial(BytecodeParser.java:1805)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.genInvokeSpecial(BytecodeParser.java:1795)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.processBytecode(BytecodeParser.java:5418)
+	at jdk.internal.vm.compiler/org.graalvm.compiler.java.BytecodeParser.iterateBytecodesForBlock(BytecodeParser.java:3477)
+	... 53 more
+[vertx-learning-1.0.0-SNAPSHOT-fat:2439]      [total]:  47,338.12 ms,  1.95 GB
+# Printing build artifacts to: /Users/이름/Documents/test/vertx-learning/vertx-learning-1.0.0-SNAPSHOT-fat.build_artifacts.txt
+Error: Image build request failed with exit status 1
+com.oracle.svm.driver.NativeImage$NativeImageError: Image build request failed with exit status 1
+	at com.oracle.svm.driver.NativeImage.showError(NativeImage.java:1762)
+	at com.oracle.svm.driver.NativeImage.build(NativeImage.java:1473)
 	at com.oracle.svm.driver.NativeImage.performBuild(NativeImage.java:1434)
 	at com.oracle.svm.driver.NativeImage.main(NativeImage.java:1421)
 ----
