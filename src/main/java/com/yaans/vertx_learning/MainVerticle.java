@@ -2,11 +2,16 @@ package com.yaans.vertx_learning;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 
 /**
  * https://vertx.io/get-started/
  */
 public class MainVerticle extends AbstractVerticle {
+
+  public static void main(String[] args) {
+    Vertx.vertx().deployVerticle(new MainVerticle());
+  }
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
